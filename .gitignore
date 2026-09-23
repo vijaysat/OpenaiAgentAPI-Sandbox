@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+.geniagent/
+.venv/
+.venv-oci/
+__pycache__/
+*.pyc
+.idea/
+.oca/
