@@ -52,7 +52,7 @@ sequenceDiagram
     Yahoo-->>OCI: Provider data
     OCI-->>OpenAI: Command result and exit status
     OpenAI-->>API: Command evidence and root turn completion
-    API->>OCI: Read result file; verify request and helper
+    API->>OCI: Read result file verify request and helper
     API-->>UI: Structured stock data and agent activity
 ```
 
