@@ -43,16 +43,17 @@ sequenceDiagram
     participant OpenAI as OpenAI Agents API
     participant OCI as OCI workspace and executor
     participant Yahoo as Yahoo Finance
+
     UI->>API: Company search or selected symbol + request ID
     API->>OpenAI: Check existing session and environment
-    API->>OCI: Check health; upload helper and request; read back
+    API->>OCI: Check health, upload helper and request, read back
     API->>OpenAI: Open event stream, then submit follow-up message
     OpenAI->>OCI: command_execution runs the stock helper
     OCI->>Yahoo: Fetch search results or latest price
     Yahoo-->>OCI: Provider data
     OCI-->>OpenAI: Command result and exit status
     OpenAI-->>API: Command evidence and root turn completion
-    API->>OCI: Read result file verify request and helper
+    API->>OCI: Read result file, verify request and helper
     API-->>UI: Structured stock data and agent activity
 ```
 
