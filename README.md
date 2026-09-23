@@ -1,7 +1,6 @@
-# GeniAgent-G — OpenAI Agents API and OCI demos
+# GenaiAgent-G — OpenAI Agents API and OCI demos
 
-A command-line application and a separate React Native stock demo for OpenAI project
-`proj_VD6ShY81c4nQ7iY3dFVuRzfo`. Python manages session state and function handlers;
+A command-line application and a separate React Native stock demo for OpenAI project. Python manages session state and function handlers;
 **all Agents HTTP requests run through Bash and curl** in `scripts/api.sh`.
 No OpenAI SDK or private preview `agent_api_sdk` is required.
 
@@ -28,7 +27,7 @@ quote. **Refresh price** runs another turn in the same session.
 The demo defaults to the user-selected session:
 
 ```text
-sess_09f68edbca8dff11006ab2fd2957b081939db122cb9ce9cccb
+<SESSION_ID>
 ```
 
 The verified session uses **GeniAgent-G / gpt-6-luna**. The API reads the model from
@@ -692,7 +691,7 @@ or physical-device execution has not been validated in these checks.
 | OCI setup/connection failure | Check runtime, outbound network, environment key, and saved resource IDs. |
 | npm ENOTFOUND | Inspect the OCI project's sandbox egress policy; the verified ALLOW_ALL workaround is scoped to a disposable project. |
 
-Sources checked September 21, 2026: the linked Oracle guide and current OpenAI
+The linked Oracle guide and current OpenAI
 [overview](https://developers.openai.com/api/docs/guides/agents-api/overview),
 [configuration](https://developers.openai.com/api/docs/guides/agents-api/configuration),
 and environment/session/function guides linked above.
