@@ -1,0 +1,12 @@
+{
+  "sdk": {
+    "filename": "oci-2.185.3+preview.1.20260909174501-py3-none-any.whl",
+    "version": "2.185.3+preview.1.20260909174501",
+    "sha256": "dfcbc66ad61ae9f7df1250216925f88a9dd5c3dbe9e35eb498d2e2de7f2bb9b7",
+    "source": "User-provided wheel at the repository root"
+  },
+  "cli": {
+    "expectedGuideVersion": "3.93.1+preview.1.1806",
+    "status": "not available locally; SDK lifecycle CLI provided separately"
+  }
+}

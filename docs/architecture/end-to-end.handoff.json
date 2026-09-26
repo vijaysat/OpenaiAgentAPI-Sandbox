@@ -1,0 +1,48 @@
+{
+  "diagram_type": "architecture",
+  "output": "/Users/vpurshot/Work/WorkProjects/OpenaiAgentAPI-Sandbox/docs/architecture/end-to-end.html",
+  "specification_sha256": "2e446240fbe3eb034bbe1ae13a3fd67951ac8b4d787b5701f32d476b8b4051cd",
+  "specification_bytes": 7458,
+  "artifact_sha256": "cc8034ec5b9aef94090d45847627576e8d4309ce6412e6d0bd6f6e3a30fdde85",
+  "artifact_bytes": 819200,
+  "validation": "9/9 showcase, 0 errors, 0 warnings",
+  "browser_evidence": "passed",
+  "visual_review": "passed",
+  "visual_review_basis": "Image-capable review of four exact-artifact screenshots: 1440x900 and 2048x1320, light and dark. Labels, routes, component fit, default READ view, viewer controls and largest-screen balance inspected. Interactive export/search behavior was not separately exercised.",
+  "correction_rounds": 1,
+  "desktop_viewports": [
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "scroll_width": 1440,
+      "scroll_height": 900,
+      "passed": true
+    },
+    {
+      "width": 1600,
+      "height": 1000,
+      "theme": "light",
+      "scroll_width": 1600,
+      "scroll_height": 1000,
+      "passed": true
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "theme": "light",
+      "scroll_width": 1920,
+      "scroll_height": 1080,
+      "passed": true
+    },
+    {
+      "width": 2048,
+      "height": 1320,
+      "theme": "light",
+      "scroll_width": 2048,
+      "scroll_height": 1320,
+      "passed": true
+    }
+  ],
+  "source_basis": "Current working-tree code; native committed-blob source verification and live cloud execution were not performed."
+}

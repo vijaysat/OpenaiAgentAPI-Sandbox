@@ -1,0 +1,7 @@
+{
+  "type": "self_hosted",
+  "network": {"access": "disabled"},
+  "setup_commands": [
+    {"command": "mkdir -p /workspace/outputs && python3 --version && node --version"}
+  ]
+}

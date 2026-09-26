@@ -1,0 +1,341 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Agents API + OCI \u00b7 End-to-end architecture",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1390,
+      625
+    ]
+  },
+  "components": [
+    {
+      "id": "entry-surfaces",
+      "type": "frontend",
+      "label": "1 \u00b7 User entry points",
+      "sublabel": "CLI \u00b7 Ticker (Expo) \u00b7 Folio (React)",
+      "pos": [
+        40,
+        155
+      ],
+      "size": [
+        240,
+        90
+      ]
+    },
+    {
+      "id": "application-services",
+      "type": "backend",
+      "label": "2 \u00b7 Application services",
+      "sublabel": "CLI / stock API / Folio API + workers",
+      "pos": [
+        395,
+        155
+      ],
+      "size": [
+        260,
+        90
+      ]
+    },
+    {
+      "id": "shared-transport",
+      "type": "backend",
+      "label": "3 \u00b7 Shared transport",
+      "sublabel": "geniagent \u00b7 Bash + curl HTTP / SSE",
+      "pos": [
+        750,
+        155
+      ],
+      "size": [
+        250,
+        90
+      ]
+    },
+    {
+      "id": "openai-agents",
+      "type": "cloud",
+      "label": "4 \u00b7 OpenAI Agents API",
+      "sublabel": "Agents \u00b7 sessions \u00b7 root turns",
+      "pos": [
+        1100,
+        155
+      ],
+      "size": [
+        250,
+        90
+      ]
+    },
+    {
+      "id": "oci-executor",
+      "type": "cloud",
+      "label": "5 \u00b7 OCI sandbox executor",
+      "sublabel": "codex exec-server \u00b7 /workspace",
+      "tag": "Separate executor key \u00b7 30 min",
+      "pos": [
+        1100,
+        325
+      ],
+      "size": [
+        250,
+        100
+      ]
+    },
+    {
+      "id": "python-helpers",
+      "type": "backend",
+      "label": "6 \u00b7 Python helpers",
+      "sublabel": "Quotes \u00b7 portfolio calculations \u00b7 JSON",
+      "pos": [
+        750,
+        325
+      ],
+      "size": [
+        250,
+        100
+      ]
+    },
+    {
+      "id": "result-verification",
+      "type": "security",
+      "label": "7 \u00b7 Result verification",
+      "sublabel": "Root turn + command + file integrity",
+      "pos": [
+        395,
+        325
+      ],
+      "size": [
+        260,
+        100
+      ]
+    },
+    {
+      "id": "result-delivery",
+      "type": "backend",
+      "label": "8 \u00b7 Deliver results",
+      "sublabel": "CLI output \u00b7 quote JSON \u00b7 Folio reports",
+      "pos": [
+        40,
+        325
+      ],
+      "size": [
+        240,
+        100
+      ]
+    },
+    {
+      "id": "application-state",
+      "type": "database",
+      "label": "Durable application state",
+      "sublabel": "CLI/Ticker files \u00b7 Folio PostgreSQL",
+      "pos": [
+        395,
+        20
+      ],
+      "size": [
+        260,
+        90
+      ]
+    },
+    {
+      "id": "oci-file-control",
+      "type": "backend",
+      "label": "OCI runtime adapter",
+      "sublabel": "Provision \u00b7 health \u00b7 file upload/readback",
+      "pos": [
+        1100,
+        20
+      ],
+      "size": [
+        250,
+        90
+      ]
+    },
+    {
+      "id": "market-provider",
+      "type": "external",
+      "label": "Yahoo Finance",
+      "sublabel": "Timestamped stock / ETF data",
+      "pos": [
+        750,
+        480
+      ],
+      "size": [
+        250,
+        85
+      ]
+    },
+    {
+      "id": "report-storage",
+      "type": "database",
+      "label": "Folio Object Storage",
+      "sublabel": "Private HTML \u00b7 CSV \u00b7 JSON reports",
+      "pos": [
+        40,
+        480
+      ],
+      "size": [
+        240,
+        85
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "OCI execution workspace",
+      "wraps": [
+        "oci-executor",
+        "python-helpers"
+      ],
+      "pad": 28
+    }
+  ],
+  "connections": [
+    {
+      "id": "submit-request",
+      "from": "entry-surfaces",
+      "to": "application-services",
+      "label": "Input / HTTP",
+      "variant": "emphasis"
+    },
+    {
+      "id": "dispatch-session-work",
+      "from": "application-services",
+      "to": "shared-transport",
+      "label": "Session work",
+      "variant": "emphasis"
+    },
+    {
+      "id": "agents-http-events",
+      "from": "shared-transport",
+      "to": "openai-agents",
+      "label": "HTTPS + SSE",
+      "variant": "emphasis"
+    },
+    {
+      "id": "execute-agent-command",
+      "from": "openai-agents",
+      "to": "oci-executor",
+      "label": "command_execution",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        1225,
+        259
+      ]
+    },
+    {
+      "id": "run-python-command",
+      "from": "oci-executor",
+      "to": "python-helpers",
+      "label": "Exact command",
+      "variant": "emphasis",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "readback-results",
+      "from": "python-helpers",
+      "to": "result-verification",
+      "label": "SDK readback",
+      "variant": "emphasis",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "accept-verified-output",
+      "from": "result-verification",
+      "to": "result-delivery",
+      "label": "Verified data",
+      "variant": "emphasis",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "display-response",
+      "from": "result-delivery",
+      "to": "entry-surfaces",
+      "label": "Response / events",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "persist-job-state",
+      "from": "application-services",
+      "to": "application-state",
+      "label": "Journal / claim jobs",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "configure-runtime",
+      "from": "shared-transport",
+      "to": "oci-file-control",
+      "label": "OCI SDK",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "request-market-data",
+      "from": "python-helpers",
+      "to": "market-provider",
+      "label": "HTTPS quotes",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        875,
+        439
+      ]
+    },
+    {
+      "id": "persist-download-report",
+      "from": "result-delivery",
+      "to": "report-storage",
+      "label": "Write / read reports",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        160,
+        439
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Session ownership",
+      "items": [
+        "CLI creates or reuses an agent; Ticker continues the selected session.",
+        "Folio uses one session per analysis; two workers claim durable jobs."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Completion contract",
+      "items": [
+        "Subscribe before input; require the completed root turn and matching command.",
+        "Demos check request identity and helper integrity; Folio recalculates results."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Folio access & recovery",
+      "items": [
+        "Oracle SSO, ownership checks and CSRF; Vault supplies live secrets.",
+        "Uncertain work keeps IDs for review. Follow-ups cannot run commands."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Separate paths & evidence",
+      "items": [
+        "OCI Responses uses its own curl client, OCI key and response IDs.",
+        "Working-tree architecture, 25 Sep 2026. Live cloud execution was not tested."
+      ]
+    }
+  ]
+}

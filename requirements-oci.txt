@@ -1,3 +1,5 @@
---index-url https://artifactory.oci.oraclecorp.com/api/pypi/global-dev-pypi/simple
-oci==2.186.1+preview.1.20260916185222
-oci-cli==3.93.1+preview.1.1806
+# Oracle preview SDK provided in this repository. The Agents CLI uses this SDK.
+--find-links .
+oci==2.185.3+preview.1.20260909174501
+# Oracle's separately distributed preview oci-cli wheel is optional for this app;
+# scripts/rollout.py supplies the required journaled lifecycle commands.

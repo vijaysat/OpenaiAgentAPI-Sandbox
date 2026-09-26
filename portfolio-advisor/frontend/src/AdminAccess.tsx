@@ -1,0 +1,45 @@
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Check, LoaderCircle, Plus, ShieldCheck, X } from 'lucide-react';
+
+type Person={id:string;email:string|null;name:string;role:'admin'|'member';active:boolean;version:number;lastLogin:number|null;hasSignedIn:boolean};
+type Change={id:number;actor:string;target:string;action:string;created:number;before:Record<string,unknown>|null;after:{name:string;role:string;active:boolean}};
+type Fields={email:string|null;name:string;role:'admin'|'member';active:boolean};
+const empty:Fields={email:'',name:'',role:'member',active:true};
+const timestamp=(value:number|null)=>value?new Date(value*1000).toLocaleString():'Has not signed in';
+
+export function AdminAccess({api,currentUserId,onBack}:{api:(path:string,init?:RequestInit)=>Promise<any>;currentUserId:string;onBack:()=>void}){
+ const [people,setPeople]=useState<Person[]>([]),[total,setTotal]=useState(0),[offset,setOffset]=useState(0);
+ const [query,setQuery]=useState(''),[search,setSearch]=useState(''),[tab,setTab]=useState<'people'|'history'>('people');
+ const [events,setEvents]=useState<Change[]>([]),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false);
+ const [error,setError]=useState(''),[message,setMessage]=useState(''),[form,setForm]=useState<Fields|null>(null),[editing,setEditing]=useState<Person|null>(null);
+ const firstField=useRef<HTMLInputElement>(null),heading=useRef<HTMLHeadingElement>(null),opener=useRef<HTMLElement|null>(null),sequence=useRef(0);
+ async function load(){const ticket=++sequence.current;setLoading(true);try{const data=await api(tab==='people'?`/api/v1/admin/users?q=${encodeURIComponent(search)}&offset=${offset}`:`/api/v1/admin/access-history?offset=${offset}`);if(ticket!==sequence.current)return;setTotal(data.total);if(tab==='people')setPeople(data.users);else setEvents(data.events)}catch(e){if(ticket===sequence.current)setError((e as Error).message)}finally{if(ticket===sequence.current)setLoading(false)}}
+ useEffect(()=>{heading.current?.focus()},[]);
+ useEffect(()=>{load();return()=>{sequence.current++}},[tab,search,offset]);
+ useEffect(()=>{if(form)firstField.current?.focus()},[!!form]);
+ function close(){setForm(null);setEditing(null);requestAnimationFrame(()=>{if(opener.current?.isConnected)opener.current.focus();else heading.current?.focus()})}
+ function open(person?:Person){opener.current=document.activeElement as HTMLElement;setError('');setMessage('');setEditing(person||null);setForm(person?{name:person.name,email:person.email,role:person.role,active:person.active}:{...empty});requestAnimationFrame(()=>firstField.current?.focus())}
+ async function save(event:FormEvent){event.preventDefault();if(!form||saving)return;setSaving(true);setError('');try{await api('/api/v1/admin/users'+(editing?'/'+editing.id:''),{method:editing?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...form,...(editing?{version:editing.version}:{})})});setMessage(editing?'Access updated. Changes apply on the next request.':'Access granted. This person can sign in with their Oracle account.');close();await load()}catch(e){setError((e as Error).message)}finally{setSaving(false)}}
+ return <section className="access-page" aria-labelledby="access-heading">
+  <button className="text-button" onClick={onBack}><ArrowLeft size={16}/> Back to portfolios</button>
+  <div className="page-heading"><div><p className="eyebrow">WORKSPACE ADMINISTRATION</p><h1 id="access-heading" ref={heading} tabIndex={-1}>People & access<span>.</span></h1><p className="muted">Choose who can use Portfolio Advisor with Oracle sign-in.</p></div><button className="button primary" onClick={()=>{setTab('people');setOffset(0);open()}}><Plus size={16}/> Grant access</button></div>
+  <p className="access-explainer"><ShieldCheck size={18}/> Members manage their own portfolios. Administrators also manage application access. Everyone’s portfolios and reports stay private.</p>
+  {error&&<p className="error" role="alert">{error}</p>}{message&&<p className="access-success" role="status"><Check size={16}/>{message}</p>}
+  {form&&<form className="panel access-form" onSubmit={save} aria-label={editing?'Edit user access':'Grant user access'}>
+   <div className="section-heading"><h2>{editing?'Edit access':'Grant access'}</h2><button type="button" className="icon-button" aria-label="Close access form" disabled={saving} onClick={close}><X size={18}/></button></div>
+   <div className="access-fields"><label className="field">Display name<input ref={firstField} required maxLength={120} autoComplete="off" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label>
+   <label className="field">Oracle sign-in email<input type="email" required={!editing} readOnly={!!editing} maxLength={254} autoComplete="off" value={form.email||''} placeholder={editing?'Linked Oracle account':''} onChange={e=>setForm({...form,email:e.target.value})}/></label>
+   <label className="field">Role<select value={form.role} disabled={editing?.id===currentUserId} onChange={e=>setForm({...form,role:e.target.value as Fields['role']})}><option value="member">Member</option><option value="admin">Administrator</option></select></label>
+   <label className="access-active"><input type="checkbox" checked={form.active} disabled={editing?.id===currentUserId} onChange={e=>setForm({...form,active:e.target.checked})}/> Access enabled</label></div>
+   <p className="muted">Use the address they sign in with at Oracle. This grants application access; it does not create an Oracle account or send an email.</p>
+   {form.role==='admin'&&<p className="notice">Administrators can grant, change, and disable access for other people.</p>}
+   {editing?.id===currentUserId&&<p className="notice">Your own administrator access must remain enabled.</p>}
+   {editing&&!form.active&&<p className="notice">Saving will sign this person out. Their saved portfolios and reports will be retained.</p>}
+   <div className="actions"><button type="button" className="button" disabled={saving} onClick={close}>Cancel</button><button className="button primary" disabled={saving||!form.name.trim()||(!editing&&!form.email?.trim())}>{saving?<LoaderCircle size={16} className="spin"/>:<Check size={16}/>} {editing?'Save access':'Grant access'}</button></div>
+  </form>}
+  <div className="tabs" role="tablist" aria-label="Access management views">{(['people','history'] as const).map(t=><button key={t} role="tab" aria-selected={tab===t} className={tab===t?'active':''} onClick={()=>{setTab(t);setOffset(0);setError('')}}>{t==='people'?'People':'Access history'}</button>)}</div>
+  {tab==='people'&&<form className="access-search" onSubmit={e=>{e.preventDefault();setOffset(0);setSearch(query)}}><label className="field">Find a person<input value={query} maxLength={120} placeholder="Name or sign-in email" onChange={e=>setQuery(e.target.value)}/></label><button className="button" disabled={loading}>Search</button></form>}
+  {loading?<p role="status" className="access-loading"><LoaderCircle className="spin" size={18}/> Loading access records…</p>:tab==='people'?<div className="access-people">{people.map(p=><article className="panel access-person" key={p.id}><div><h2>{p.name}{p.id===currentUserId&&<span className="tag">You</span>}</h2><p className="access-email">{p.email||'Linked Oracle account'}</p><p className="muted">Last sign-in: {timestamp(p.lastLogin)}</p></div><div className="access-person-actions"><span className="tag">{p.role==='admin'?'Administrator':'Member'}</span><span className={'tag '+(p.active?'access-enabled':'access-disabled')}>{p.active?'Enabled':'Disabled'}</span><button className="button" aria-label={`Edit access for ${p.name}`} onClick={()=>open(p)}>Edit access</button></div></article>)}{people.length===0&&<p className="panel empty-copy">No people match this search.</p>}</div>:<div className="access-history">{events.map(e=><article className="panel" key={e.id}><div className="section-heading"><h2>{e.action==='bootstrap'?'Initial administrator configured':e.action==='grant'?'Access granted':'Access updated'}</h2><time dateTime={new Date(e.created*1000).toISOString()}>{timestamp(e.created)}</time></div><p className="access-email">{e.target}</p><p className="muted">{e.after.role==='admin'?'Administrator':'Member'} · {e.after.active?'Enabled':'Disabled'} · By {e.actor==='configured-bootstrap'?'Initial configuration':e.actor}</p>{e.before&&<p className="muted">Previously: {String(e.before.role)} · {e.before.active?'Enabled':'Disabled'}</p>}</article>)}{events.length===0&&<p className="panel empty-copy">No access changes recorded.</p>}</div>}
+  <nav className="access-pagination" aria-label="Access records pages"><button className="button" disabled={loading||offset===0} onClick={()=>setOffset(Math.max(0,offset-50))}>Previous</button><span>{total===0?'0 records':`${offset+1}–${Math.min(offset+50,total)} of ${total}`}</span><button className="button" disabled={loading||offset+50>=total} onClick={()=>setOffset(offset+50)}>Next</button></nav>
+ </section>;
+}

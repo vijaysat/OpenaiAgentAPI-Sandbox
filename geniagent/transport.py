@@ -12,9 +12,10 @@ import time
 
 
 class APIError(RuntimeError):
-    def __init__(self, message, status=0):
+    def __init__(self, message, status=0, *, request_id=None, code=None, param=None):
         super().__init__(message)
         self.status = status
+        self.request_id, self.code, self.param = request_id, code, param
 
 
 def parse_headers(path):
@@ -81,9 +82,17 @@ class CurlClient:
     def error(self, code, headers, body, stderr):
         status, values = parse_headers(headers)
         request_id = values.get("x-request-id", "unavailable")
+        try:
+            detail_fields = json.loads(body).get("error", {})
+            if not isinstance(detail_fields, dict):
+                detail_fields = {}
+        except (ValueError, AttributeError):
+            detail_fields = {}
+        def safe_identifier(value):
+            return value if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9_.\[\]-]{1,120}", value) and not value.startswith("sk-") else None
         hints = {
             401: "Check OPENAI_API_KEY and the selected project.",
-            403: "Check Agents API access and api.agents.read/write plus api.responses.write permissions.",
+            403: "Check Models read, Agents read/write and Responses write permissions in the selected project.",
             404: "Check Agents API availability and the resource ID in this project.",
             429: "Check quota or rate limits before retrying.",
         }
@@ -91,7 +100,8 @@ class CurlClient:
         return APIError(self.redact(
             f"HTTP {status or 'unavailable'}; curl exit {code}; request ID {request_id}. "
             f"{hints.get(status, '')}\n{detail[:3000]}"
-        ), status=status)
+        ), status=status, request_id=safe_identifier(request_id),
+            code=safe_identifier(detail_fields.get("code")), param=safe_identifier(detail_fields.get("param")))
 
     def request(self, method, path, body=None):
         with tempfile.TemporaryDirectory(prefix="geniagent-http-") as folder:

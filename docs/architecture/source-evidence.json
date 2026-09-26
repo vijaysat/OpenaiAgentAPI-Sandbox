@@ -1,0 +1,101 @@
+{
+  "basis": "Inspected working-tree files, including uncommitted changes; not committed-blob or live-service verification.",
+  "date": "2026-09-25",
+  "files": [
+    {
+      "path": "geniagent/app.py",
+      "sha256": "da4784c113f1e8a01ec9f5b349dc3066309834c096b5fe947e3d5a5077e5d420",
+      "bytes": 26825
+    },
+    {
+      "path": "geniagent/transport.py",
+      "sha256": "a6a3765eca5f3174b63beaf03dcd4a6dcf82fd66281eee70280898aeb240e0f4",
+      "bytes": 9389
+    },
+    {
+      "path": "geniagent/oci_runtime.py",
+      "sha256": "f74f932d2f5401e54c87667c74798825fe65b48b814a883ca20a68479da1e2f7",
+      "bytes": 13107
+    },
+    {
+      "path": "geniagent/oci_inference.py",
+      "sha256": "3081fbde027575383642de6a49629d0391c9f031058f5a6f6cda9c891cddda06",
+      "bytes": 9962
+    },
+    {
+      "path": "stock-demo/backend/server.py",
+      "sha256": "777d0c7180931d0a43e46ccd53a406bec05a017a478405808efa778189c57ce5",
+      "bytes": 4460
+    },
+    {
+      "path": "stock-demo/backend/agent.py",
+      "sha256": "237ed0fef82b16666ac72cfcdcaea0b4e43851aad8711538c01f8bf1a6395e5c",
+      "bytes": 12882
+    },
+    {
+      "path": "stock-demo/backend/provider.py",
+      "sha256": "586171604f96e4c0b458d71d4f46a5b3bf8cc3e353682a2bbe590e754528d1cf",
+      "bytes": 6070
+    },
+    {
+      "path": "portfolio-advisor/portfolio_advisor/api.py",
+      "sha256": "d1a13ace3c1aa58e18c75887f68fe3540f04b3bf8d6adfa1af5067b7bdeb002a",
+      "bytes": 13456
+    },
+    {
+      "path": "portfolio-advisor/portfolio_advisor/auth.py",
+      "sha256": "0e360609db88e454c231e989ef6fea38632311c915e463b90cd24da7c32ebe96",
+      "bytes": 7735
+    },
+    {
+      "path": "portfolio-advisor/portfolio_advisor/db.py",
+      "sha256": "3570b00b3947fe847fc1d2fe0e021fc947bae5adf9737ad464028a021f4f49ca",
+      "bytes": 12101
+    },
+    {
+      "path": "portfolio-advisor/portfolio_advisor/worker.py",
+      "sha256": "c784cd4305f5e04e6d77f6ef385fd295f99b9d04104368a2b0fbaeba1ab8a3d5",
+      "bytes": 9694
+    },
+    {
+      "path": "portfolio-advisor/portfolio_advisor/remote.py",
+      "sha256": "aecaae7ce5dd797d21fbbbe4d1d89fe6fe4bec8e9506dfffc75391d48bb31665",
+      "bytes": 22334
+    },
+    {
+      "path": "portfolio-advisor/portfolio_advisor/sandbox_entry.py",
+      "sha256": "e43496aded1abe155b1ec9803ab29e54b7d25d5298d7fd598ecbe86cc4332804",
+      "bytes": 943
+    },
+    {
+      "path": "portfolio-advisor/portfolio_advisor/market.py",
+      "sha256": "d34a740a6fb774cdd26f56cbd2611a0dfe18203b0ebc8b060dfb40020eca6018",
+      "bytes": 2500
+    },
+    {
+      "path": "portfolio-advisor/portfolio_advisor/analytics.py",
+      "sha256": "1bc27196c1ad70b91704b50c4e303388f0d688ecb3ad90648ef321b3cfed81e2",
+      "bytes": 6706
+    },
+    {
+      "path": "portfolio-advisor/portfolio_advisor/storage.py",
+      "sha256": "254be04e1ec710fd4bb4a25da15f8a7317de90975b86b5f620a1ae83583d115b",
+      "bytes": 2230
+    },
+    {
+      "path": "portfolio-advisor/portfolio_advisor/config.py",
+      "sha256": "4d309fe36c3e2fb15729d968420c2c9d8086efd019f0fcae8c60c7b9ae54d456",
+      "bytes": 6703
+    },
+    {
+      "path": "portfolio-advisor/deploy/supervise.py",
+      "sha256": "acd8b7b541a70ce622ae031f8de2fd21e4cea4e18490584732eb45c183fef38d",
+      "bytes": 1531
+    },
+    {
+      "path": "portfolio-advisor/deploy/compose.yaml",
+      "sha256": "ffcd56fc0be764e42d9efb7fa815aaed772de1859ce1464d3a632cee9ce04abd",
+      "bytes": 426
+    }
+  ]
+}

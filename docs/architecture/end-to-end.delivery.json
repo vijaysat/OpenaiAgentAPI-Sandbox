@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/vpurshot/Work/WorkProjects/OpenaiAgentAPI-Sandbox/docs/architecture/end-to-end.architecture.json",
+  "output": "/Users/vpurshot/Work/WorkProjects/OpenaiAgentAPI-Sandbox/docs/architecture/end-to-end.html",
+  "specification": {
+    "sha256": "2e446240fbe3eb034bbe1ae13a3fd67951ac8b4d787b5701f32d476b8b4051cd",
+    "bytes": 7458
+  },
+  "artifact": {
+    "sha256": "cc8034ec5b9aef94090d45847627576e8d4309ce6412e6d0bd6f6e3a30fdde85",
+    "bytes": 819200
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

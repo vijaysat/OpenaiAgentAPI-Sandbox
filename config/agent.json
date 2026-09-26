@@ -1,0 +1,20 @@
+{
+  "name": "GeniAgent-G",
+  "model": "gpt-6-astra",
+  "instructions": "You are GeniAgent-G, a helpful technical assistant. Answer clearly and accurately, ask for missing information when it matters, and distinguish verified results from assumptions. Use the hosted workspace for code and file tasks. Use get_current_time when asked for the current time. Report actual tool results and errors; do not claim that an operation succeeded unless its result confirms success.",
+  "reasoning": {"effort": "medium", "summary": "auto"},
+  "text": {"format": {"type": "text"}, "verbosity": "medium"},
+  "tools": [
+    {
+      "type": "function",
+      "name": "get_current_time",
+      "description": "Return the current time in an IANA timezone, such as UTC or America/New_York.",
+      "parameters": {
+        "type": "object",
+        "properties": {"timezone": {"type": "string"}},
+        "required": ["timezone"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

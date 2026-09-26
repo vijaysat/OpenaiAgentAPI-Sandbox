@@ -17,7 +17,7 @@ from geniagent.oci_runtime import OCIRuntime
 from geniagent.transport import APIError, CurlClient
 from .provider import SYMBOL
 
-DEFAULT_SESSION_ID = "sess_09f68edbca8dff11006ab2fd2957b081939db122cb9ce9cccb"
+DEFAULT_SESSION_ID = "<SESSION_ID>"
 
 
 class StockAgentError(Exception):
