@@ -1,4 +1,4 @@
-"""Optional OCI beta sandbox lifecycle; Agents API calls remain curl-based."""
+"""Optional OCI sandbox lifecycle; Agents API calls remain curl-based."""
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,13 +9,15 @@ import uuid
 
 from .transport import APIError
 
+CODEX_VERSION = "0.155.0"
+
 
 def build_sdk():
     try:
         import oci
         from oci.generative_ai_sandbox import GenerativeAiSandboxClient, models
     except ImportError as exc:
-        raise APIError("OCI beta SDK missing. Run with .venv-oci/bin/python after installing the Oracle-provided wheel.") from exc
+        raise APIError("OCI SDK missing. Install requirements-oci.txt and run with .venv-oci/bin/python.") from exc
     profile = os.environ.get("OCI_SANDBOX_PROFILE", "Sandbox")
     region = os.environ.get("OCI_SANDBOX_REGION", "us-chicago-1")
     try:
@@ -181,8 +183,11 @@ class OCIRuntime:
         command = (
             "command -v python3 >/dev/null && command -v node >/dev/null && "
             "command -v npm >/dev/null && mkdir -p /workspace/.local /workspace/outputs && "
-            "npm install --global --prefix /workspace/.local @openai/codex@alpha && "
-            "/workspace/.local/bin/codex exec-server --help >/dev/null"
+            f"npm install --global --prefix /workspace/.local @openai/codex@{CODEX_VERSION} && "
+            f'test "$(/workspace/.local/bin/codex --version)" = "codex-cli {CODEX_VERSION}" && '
+            'help="$(/workspace/.local/bin/codex exec-server --help)" && '
+            'printf "%s\\n" "$help" | grep -q -- "--remote <" && '
+            'printf "%s\\n" "$help" | grep -q -- "--environment-id <"'
         )
         if not record.get("setup_command_id"):
             if record.get("setup_submitted"):

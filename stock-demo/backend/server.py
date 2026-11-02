@@ -5,7 +5,9 @@ import json
 import os
 from urllib.parse import urlsplit
 
-from .agent import DEFAULT_SESSION_ID, StockAgentError, StockAgentService
+from .agent import ROOT, StockAgentError, StockAgentService
+from geniagent.app import configured_project, load_dotenv
+from geniagent.transport import APIError
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -70,14 +72,20 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(500, {"error": "The agent request could not finish. Inspect .agent-state before retrying."})
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8766)
-    parser.add_argument("--session-id", default=DEFAULT_SESSION_ID, help="Existing OpenAI session to continue; never creates a replacement session")
-    args = parser.parse_args()
+    parser.add_argument("--session-id", required=True, help="Existing OpenAI session to continue; never creates a replacement session")
+    args = parser.parse_args(argv)
+    try:
+        stock_agent = StockAgentService(session_id=args.session_id)
+        load_dotenv(ROOT / ".env")
+        configured_project()
+    except APIError as exc:
+        parser.error(str(exc))
     server = ThreadingHTTPServer((args.host, args.port), Handler)
-    server.stock_agent = StockAgentService(session_id=args.session_id)
+    server.stock_agent = stock_agent
     print(f"Stock demo / OpenAI Agents API: http://{args.host}:{args.port}", flush=True)
     print(f"Using existing session: {args.session_id}", flush=True)
     try:

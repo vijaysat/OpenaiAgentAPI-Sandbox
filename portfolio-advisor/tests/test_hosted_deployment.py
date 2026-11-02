@@ -82,7 +82,7 @@ def test_oracle_discovery_location_can_differ_from_token_issuer():
 
 
 def test_hosted_source_contains_transport_but_excludes_workspace_secrets(tmp_path):
-    files = {'scripts/api.sh': '#!/bin/bash\n', 'geniagent/transport.py': '# transport',
+    files = {'LICENSE': 'MIT License\n', 'scripts/api.sh': '#!/bin/bash\n', 'geniagent/transport.py': '# transport',
              'portfolio-advisor/frontend/src/App.tsx': '// UI', '.env': 'SECRET=value',
              'stock-demo/backend/agent.py': '# unrelated',
              'portfolio-advisor/deploy/private/journal.json': 'private',
@@ -90,8 +90,32 @@ def test_hosted_source_contains_transport_but_excludes_workspace_secrets(tmp_pat
              'portfolio-advisor/frontend/node_modules/dep/index.js': 'cache'}
     for name, value in files.items():
         path = tmp_path / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_text(value)
-    assert set(dict(entries(tmp_path))) == {'scripts/api.sh', 'geniagent/transport.py',
+    assert set(dict(entries(tmp_path))) == {'LICENSE', 'scripts/api.sh', 'geniagent/transport.py',
                                           'portfolio-advisor/frontend/src/App.tsx'}
+
+
+def test_hosted_build_starts_without_a_preview_wheel(monkeypatch):
+    import oci
+    from types import SimpleNamespace as NS
+    from unittest.mock import Mock
+    import build_hosted_image
+
+    client = Mock()
+    client.create_build_run.return_value = NS(data=NS(id='build_test'))
+    monkeypatch.setattr(oci.devops, 'DevopsClient', lambda *a, **kw: client)
+    monkeypatch.setattr(oci.artifacts, 'ArtifactsClient', lambda *a, **kw: Mock())
+    monkeypatch.setattr(oci.pagination, 'list_call_get_all_results', lambda *a, **kw: NS(data=[]))
+    monkeypatch.setattr(build_hosted_image, 'status', lambda r: r.j['image_build'])
+    journal = {'outputs': {'compartment_id': 'compartment', 'repository_id': 'repository',
+                          'build_pipeline_id': 'pipeline', 'source_repository_url': 'https://example.test/source'},
+               'source_snapshot': {'commit': 'a' * 40}, 'operations': {},
+               'applicationURL': 'https://example.test/app/'}
+    rollout = NS(j=journal, oci=oci, config={}, signer=None, tags={}, save=Mock(),
+                 operation=lambda key, action: action('test-token').data.id)
+    assert build_hosted_image.start(rollout)['id'] == 'build_test'
+    details = client.create_build_run.call_args.args[0]
+    assert {item.name: item.value for item in details.build_run_arguments.items} == {
+        'APP_BASE_PATH': '/app/', 'IMAGE_TAG': 'source-' + 'a' * 16}
 
 
 @pytest.mark.parametrize('flags,owner,reason', [

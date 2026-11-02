@@ -10,10 +10,12 @@ from types import SimpleNamespace as NS
 import unittest
 from unittest.mock import patch
 
-from geniagent.app import Application, State, PROJECT, main
-from geniagent.oci_runtime import OCIRuntime
+from geniagent.app import Application, State, main
+from geniagent.oci_runtime import CODEX_VERSION, OCIRuntime
 from geniagent.transport import APIError
 
+
+PROJECT = "proj_test"
 
 class FakeSDK:
     def __init__(self):
@@ -71,6 +73,10 @@ class OCITests(unittest.TestCase):
         self.runtime.provision(self.session)
         commands = [c[2] for c in self.sdk.calls if c[0] == "command"]
         self.assertIn("command -v npm", commands[0].command)
+        self.assertIn(f"@openai/codex@{CODEX_VERSION}", commands[0].command)
+        self.assertIn(f"codex-cli {CODEX_VERSION}", commands[0].command)
+        self.assertIn("--environment-id <", commands[0].command)
+        self.assertNotIn("@alpha", commands[0].command)
         inner = shlex.split(commands[1].command)[2]
         self.assertIn(self.session["environment"]["remote_url"], shlex.split(inner))
         self.assertEqual(commands[1].environment_variables[0].value, "environment-key")
@@ -80,6 +86,14 @@ class OCITests(unittest.TestCase):
         self.assertIn("executor_command_id", record)
         saved = (self.state.folder / "sess_fixture-oci.json").read_text()
         self.assertNotIn("environment-key", saved)
+
+    def test_resume_keeps_the_running_executor_without_reinstalling(self):
+        self.runtime.provision(self.session)
+        commands = len([c for c in self.sdk.calls if c[0] == "command"])
+        self.sdk.get_sandbox_command = lambda *args: NS(data=NS(exit_code=None, time_finished=None))
+        with patch.object(self.runtime, "wait_command"):
+            self.runtime.resume(self.session)
+        self.assertEqual(len([c for c in self.sdk.calls if c[0] == "command"]), commands)
 
     def test_application_key_cannot_be_reused_as_executor_key(self):
         os.environ["OPENAI_EXECUTOR_API_KEY"] = "application-key"

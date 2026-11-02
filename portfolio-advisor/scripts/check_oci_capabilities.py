@@ -1,8 +1,5 @@
 """Offline SDK/CLI capability check; never authenticates or calls OCI."""
-import importlib.metadata
 import json
-import sys
-from pathlib import Path
 
 def check():
     import oci
@@ -19,10 +16,10 @@ def check():
     for model in ['SandboxConfig', 'SandboxAllowNetworkPolicy', 'AllowedDomain', 'CreateHostedApplicationDetails',
                   'CreateHostedDeploymentDetails', 'CreateSingleDockerArtifactDetails', 'SingleDockerArtifact']:
         if not hasattr(models, model): missing.append(model)
-    if missing: raise RuntimeError('Required Oracle preview capabilities missing: ' + ', '.join(missing))
+    if missing: raise RuntimeError('Required OCI SDK capabilities missing: ' + ', '.join(missing))
     return {'sdkVersion': oci.__version__, 'requiredSdkCapabilities': 'available',
-            'deploymentCLI': 'scripts/rollout.py', 'oraclePreviewCLI': 'not bundled; use the approved Oracle distribution if required'}
+            'deploymentCLI': 'scripts/rollout.py', 'oracleCLI': 'optional; installed separately'}
 
 if __name__ == '__main__':
     try: print(json.dumps(check(), indent=2))
-    except Exception: raise SystemExit('Preview SDK capability check failed. Install the approved wheel from vendor/manifest.json.') from None
+    except Exception: raise SystemExit('OCI SDK capability check failed. Install the public SDK using the application requirements.') from None

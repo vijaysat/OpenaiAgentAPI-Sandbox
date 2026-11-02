@@ -12,8 +12,7 @@ FROM python:3.13-slim-bookworm AS dependencies
 WORKDIR /install
 RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources && apt-get update && apt-get install -y --no-install-recommends gcc libffi-dev && rm -rf /var/lib/apt/lists/*
 COPY portfolio-advisor/requirements.lock ./
-COPY portfolio-advisor/vendor/ ./vendor/
-RUN python -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir --require-hashes --find-links vendor -r requirements.lock
+RUN python -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir --require-hashes -r requirements.lock
 
 FROM python:3.13-slim-bookworm AS curl-builder
 # Bookworm's curl still lacks the upstream fixes required by OCI's scan gate.
@@ -45,6 +44,7 @@ RUN curl --version | head -1 | grep -F 'curl 8.22.0 '
 COPY --from=dependencies /opt/venv /opt/venv
 ENV PATH=/opt/venv/bin:$PATH PYTHONPATH=/app:/app/portfolio-advisor PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 APP_ENV=hosted APP_HOST=0.0.0.0 PORT=8080 OCI_AUTH_MODE=resource_principal
 WORKDIR /app
+COPY LICENSE /app/LICENSE
 COPY geniagent/ /app/geniagent/
 COPY scripts/api.sh /app/scripts/api.sh
 COPY portfolio-advisor/portfolio_advisor/ /app/portfolio-advisor/portfolio_advisor/

@@ -4,7 +4,7 @@ Folio is a separate internal demo for the OpenAI **Agents API**, using the repos
 
 ## Run the local rehearsal
 
-Use Python 3.13, Node 22, Docker, and the Oracle preview wheel supplied at the repository root. From the repository root:
+Use Python 3.13, Node 22, and Docker. Dependencies, including public OCI SDK 2.189.0, install from the hashed requirements lock. From the repository root:
 
 ```bash
 python3 portfolio-advisor/scripts/setup.py
@@ -42,7 +42,7 @@ portfolio-advisor/.venv/bin/python portfolio-advisor/scripts/check_config.py --r
 portfolio-advisor/.venv/bin/python portfolio-advisor/scripts/run_local.py
 ```
 
-The user-supplied `oci-2.185.3+preview.1.20260909174501-py3-none-any.whl` is an **SDK wheel**. Its checksum is recorded in `vendor/manifest.json`, and its required sandbox/hosted methods were checked offline. `scripts/rollout.py` provides the journaled lifecycle CLI using this SDK. Oracle's separate `oci-cli` preview package is not included or claimed as validated. The preview guide/version compatibility must be rechecked before cloud provisioning.
+Public OCI SDK **2.189.0** provides the required sandbox and hosted-application capabilities. Both hashed Python lockfiles pin this release. `scripts/rollout.py` supplies the journaled lifecycle CLI; Oracle's separate `oci-cli` package is optional and installed independently. Run `scripts/check_oci_capabilities.py` to check SDK capabilities without authenticating or contacting OCI.
 
 ## Architecture
 
@@ -90,7 +90,7 @@ All `/api/v1` routes require the signed session, enforce ownership, and require 
 
 ## Validation and delivery
 
-`requirements.lock`, `requirements-dev.lock`, `frontend/package-lock.json`, and `infra/foundation/.terraform.lock.hcl` lock dependencies. The runtime image contains the built UI, API, workers and preview SDK, runs as UID 10001, and excludes `.env`, private journals, local holdings, and credentials from build context.
+`requirements.lock`, `requirements-dev.lock`, `frontend/package-lock.json`, and `infra/foundation/.terraform.lock.hcl` lock dependencies. The runtime image contains the built UI, API, workers and public OCI SDK, runs as UID 10001, and excludes `.env`, private journals, local holdings, and credentials from build context.
 
 ```bash
 portfolio-advisor/.venv/bin/python -m pip install --require-hashes --find-links portfolio-advisor/vendor -r portfolio-advisor/requirements-dev.lock

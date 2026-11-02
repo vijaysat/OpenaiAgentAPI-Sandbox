@@ -78,7 +78,8 @@ class OCIInferenceTests(unittest.TestCase):
             if method == "get_sandbox_command_output": return NS(data=NS(stdout=transcript, stderr=""))
             return NS(data=None)
         runtime.call.side_effect = call
-        with patch("geniagent.oci_inference.State", return_value=state), \
+        with patch.dict(os.environ, {"OPENAI_PROJECT_ID": "proj_test"}), \
+             patch("geniagent.oci_inference.State", return_value=state), \
              patch("geniagent.oci_runtime.OCIRuntime", return_value=runtime):
             stream_in_sandbox(self.client, payload("openai.gpt-6-astra", "hello"), self.output, 30, "sess_fixture")
         details = next(c.args[2] for c in runtime.call.call_args_list if c.args[0] == "run_sandbox_command")

@@ -309,7 +309,7 @@ resource "oci_devops_build_pipeline" "this" {
   description  = "Build and publish the dedicated Portfolio Advisor application"
   build_pipeline_parameters {
     dynamic "items" {
-      for_each = toset(["APP_BASE_PATH", "OCI_NAMESPACE", "BUILD_INPUT_BUCKET", "PREVIEW_WHEEL_OBJECT", "PREVIEW_WHEEL_SHA256", "IMAGE_TAG"])
+      for_each = toset(["APP_BASE_PATH", "IMAGE_TAG"])
       content {
         name          = items.value
         default_value = "UNSET"
@@ -322,7 +322,7 @@ resource "oci_devops_build_pipeline_stage" "build" {
   build_pipeline_id         = oci_devops_build_pipeline.this.id
   build_pipeline_stage_type = "BUILD"
   display_name              = "Build and validate Portfolio Advisor"
-  description               = "Build the reviewed source with the pinned preview SDK"
+  description               = "Build the reviewed source with the pinned public OCI SDK"
   build_spec_file           = "portfolio-advisor/deploy/build_spec.yaml"
   image                     = "OL8_X86_64_STANDARD_10"
   primary_build_source      = "portfolio"
@@ -379,7 +379,7 @@ resource "oci_identity_dynamic_group" "build" {
 resource "oci_identity_policy" "build" {
   compartment_id = local.application_compartment_id
   name           = "${var.prefix}-build"
-  description    = "Build source, private wheel inputs, and OCIR publishing; no application credentials"
+  description    = "Build source, retained build inputs, and OCIR publishing; no application credentials"
   statements = concat([
     "Allow dynamic-group id ${oci_identity_dynamic_group.build.id} to manage devops-family in compartment id ${local.application_compartment_id}",
     # Collection metadata lookup has no individual target.repo.name to evaluate.

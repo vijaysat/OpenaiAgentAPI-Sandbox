@@ -1,6 +1,6 @@
 # GenaiAgent-G — OpenAI Agents API and OCI demos
 
-A command-line application and a separate React Native stock demo for OpenAI project. Python manages session state and function handlers;
+A command-line application and a separate React Native stock demo for your configured OpenAI project. Python manages session state and function handlers;
 **all Agents HTTP requests run through Bash and curl** in `scripts/api.sh`.
 No OpenAI SDK or private preview `agent_api_sdk` is required.
 
@@ -24,13 +24,10 @@ range, and provider timestamp. The app displays the agent's response, model,
 session ID, turn ID, execution environment, and command completion alongside the
 quote. **Refresh price** runs another turn in the same session.
 
-The demo defaults to the user-selected session:
+The demo requires an existing session selected explicitly with `--session-id`.
+Replace `SESSION_ID` in the commands below with its exact ID.
 
-```text
-<SESSION_ID>
-```
-
-The verified session uses **GeniAgent-G / gpt-6-luna**. The API reads the model from
+The recorded live demo used **GeniAgent-G / gpt-6-luna**. The API reads the model from
 the selected session; it does not replace it with the `gpt-6-astra` template in
 `config/agent.json`. No stock-demo route creates a new agent or session.
 
@@ -77,7 +74,7 @@ Run these commands from the repository root:
 ```bash
 cd stock-demo
 npm ci
-npm run api -- --session-id sess_09f68edbca8dff11006ab2fd2957b081939db122cb9ce9cccb
+npm run api -- --session-id SESSION_ID
 ```
 
 In a second terminal, from the repository root:
@@ -160,8 +157,8 @@ From the project directory:
 test -f .env || cp .env.example .env
 ```
 
-Edit `.env` and set `OPENAI_API_KEY` to an **OpenAI application API key** belonging
-to the project above. Grant `api.agents.read`, `api.agents.write`, and
+Edit `.env` and set `OPENAI_PROJECT_ID` to your project ID and `OPENAI_API_KEY`
+to an **OpenAI application API key** belonging to that project. Grant `api.agents.read`, `api.agents.write`, and
 `api.responses.write`, as specified in the
 [current quickstart](https://developers.openai.com/api/docs/guides/agents-api/quickstart#prerequisites).
 Project access, model access, and billing must also permit the requested work.
@@ -244,29 +241,20 @@ This option follows the application-managed lifecycle in the supplied
 and the [current OpenAI OCI guide](https://developers.openai.com/api/docs/guides/agents-api/environments/providers/oci).
 The API/control plane remains on OpenAI. OCI hosts the workspace and executor.
 
-The isolated `.venv-oci` uses the requested preview versions:
-
-- OCI SDK `2.186.1+preview.1.20260916185222`
-- OCI CLI `3.93.1+preview.1.1806`
-
-They are pinned in `requirements-oci.txt`. With access to Oracle's internal
-package registry, install both together and verify dependencies:
+The isolated `.venv-oci` installs public OCI SDK **2.189.0**, pinned in
+`requirements-oci.txt`. No private wheel or internal package registry is required:
 
 ```bash
 bash scripts/setup_oci.sh
-.venv-oci/bin/oci --version
 ```
 
-The ordinary PyPI OCI package may not include `oci.generative_ai_sandbox`. Keep
-these pins together to prevent another CLI installation from replacing the SDK.
-The setup script also accepts an Oracle-provided SDK wheel path for offline SDK
-installation. The existing `.venv` is separate from `.venv-oci`.
-
-Use a sandbox-enabled OCI Generative AI project and a security-token profile with
-permission to manage its sandboxes. Authenticate with the installed OCI CLI:
+The setup script creates `.venv-oci`, installs the public SDK, checks dependencies,
+and verifies the sandbox module import. It does not install the separate OCI CLI.
+Use a separately installed OCI CLI to authenticate a sandbox-enabled Generative AI
+project's security-token profile:
 
 ```bash
-.venv-oci/bin/oci session authenticate --profile-name Sandbox --region us-chicago-1
+oci session authenticate --profile-name Sandbox --region us-chicago-1
 ```
 
 Add these settings to the existing `.env`:
@@ -296,13 +284,13 @@ into the sandbox. This app passes **only the environment key** as `CODEX_API_KEY
 ```
 
 The OCI path creates a self-hosted session, opens its stream, provisions a SMALL
-sandbox, checks for Python/Node/npm, installs `@openai/codex@alpha`, and starts
-`codex exec-server`. It passes the returned environment ID and `remote_url`
+sandbox, checks for Python/Node/npm, installs pinned `@openai/codex@0.155.0`, and starts
+`codex exec-server` after checking its version and required flags. It passes the returned environment ID and `remote_url`
 unchanged, including routing parameters. It verifies OpenAI reports `connected`
 before sending the initial user message.
 
 The lifecycle was also compared with the local reference
-`/Users/vpurshot/Work/WorkProjects/oci-sandbox-dev-test/oci-openai-agents-sandbox/oci_sandbox/main.py`:
+`oci-openai-agents-sandbox/oci_sandbox/main.py`:
 security-token authentication, the `python-3.11` SMALL runtime, installation under
 `/workspace/.local`, and `exec-server` with the returned environment routing match
 that example. This application uses Bash/curl for the Agents HTTP API, the saved
@@ -426,7 +414,7 @@ After connecting a session as described above:
 
 ```bash
 .venv-oci/bin/python -u scripts/run_oracle_guide.py \
-  --session-id sess_0efddaa5bff8176c006ab1a93ecba8819cbe2e9780446b0426 \
+  --session-id SESSION_ID \
   --follow-up
 ```
 
@@ -474,7 +462,7 @@ Run the request itself inside the existing OCI sandbox:
 ```bash
 .venv-oci/bin/python -m geniagent.oci_inference \
   "Calculate sum([10, 20, 30]) and report the answer." \
-  --sandbox-session-id sess_0efddaa5bff8176c006ab1a93ecba8819cbe2e9780446b0426
+  --sandbox-session-id SESSION_ID
 ```
 
 The latter uses the locally saved session-to-sandbox mapping without calling the
@@ -552,7 +540,7 @@ same reusable-agent flow. Do not run them in addition to `start` unless you want
 another agent/session. Use the Python CLI for automatic function handling.
 
 ```bash
-export OPENAI_PROJECT_ID=proj_VD6ShY81c4nQ7iY3dFVuRzfo
+export OPENAI_PROJECT_ID=proj_YOUR_PROJECT_ID
 
 agent_id=$(bash scripts/api.sh POST /agents < config/agent.json | jq -er '.id')
 
@@ -567,7 +555,7 @@ The underlying HTTP request is directly expressible with curl:
 curl --no-buffer --fail-with-body \
   https://api.openai.com/v1/agents \
   --header @<(printf 'Authorization: Bearer %s\n' "$OPENAI_API_KEY") \
-  --header 'OpenAI-Project: proj_VD6ShY81c4nQ7iY3dFVuRzfo' \
+  --header "OpenAI-Project: $OPENAI_PROJECT_ID" \
   --header 'OpenAI-Beta: agents=v1' \
   --header 'Content-Type: application/json' \
   --data-binary @config/agent.json
@@ -581,6 +569,9 @@ there using `agent.session.input.tool_result`. See
 and [functions](https://developers.openai.com/api/docs/guides/agents-api/tools/functions).
 
 ## Validation and troubleshooting
+
+For the public-SDK migration and current local test results, see
+[review-fix verification — November 2, 2026](docs/VERIFICATION-2026-11-02.md).
 
 ```bash
 python3 -m unittest discover -s tests -v
@@ -680,7 +671,7 @@ or physical-device execution has not been validated in these checks.
 | credit_balance_exhausted | Add credits in OpenAI billing for the project's organization, then retry. |
 | usage_limit_exceeded | Review the organization's billing and usage limits; inspect the existing turn before retrying. |
 | Invalid model/settings | Verify Astra access and edit the agent JSON; no automatic model fallback occurs. |
-| Missing OCI sandbox module | Use `.venv-oci` and the Oracle beta wheel. |
+| Missing OCI sandbox module | Run `bash scripts/setup_oci.sh` and use `.venv-oci`. |
 | OCI authentication error | Renew the named OCI security-token profile. |
 | A sandbox already exists for this session | Inspect the retained sandbox and project mapping; stopped/expired does not mean deleted. Handle existing resources before reconnecting the same session. |
 | Stock demo says executor disconnected | Reconnect the configured session; reauthentication alone does not provision or restart its sandbox. |
@@ -696,3 +687,7 @@ The linked Oracle guide and current OpenAI
 [overview](https://developers.openai.com/api/docs/guides/agents-api/overview),
 [configuration](https://developers.openai.com/api/docs/guides/agents-api/configuration),
 and environment/session/function guides linked above.
+
+## License
+
+This repository’s code is available under the [MIT license](LICENSE). Third-party dependencies retain their own licenses.

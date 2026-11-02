@@ -11,7 +11,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from geniagent.app import Application, PROJECT, State, load_dotenv, resource_id
+from geniagent.app import Application, configured_project, State, load_dotenv, resource_id
 from geniagent.oci_runtime import OCIRuntime
 from geniagent.transport import APIError, CurlClient
 from scripts.run_temporary_project_test import wait_project
@@ -163,12 +163,11 @@ def main():
     parser.add_argument("--cleanup", action="store_true", help="Delete this connector's OCI resources; keep session history")
     args = parser.parse_args()
     load_dotenv(ROOT / ".env")
-    if os.environ.get("OPENAI_PROJECT_ID", PROJECT) != PROJECT:
-        raise APIError(f"This application targets {PROJECT}.")
+    project = configured_project()
     import oci
     from oci.generative_ai import GenerativeAiClient, models
-    client = CurlClient(os.environ["OPENAI_API_KEY"], PROJECT)
-    app = Application(client, State(ROOT / ".geniagent", PROJECT))
+    client = CurlClient(os.environ["OPENAI_API_KEY"], project)
+    app = Application(client, State(ROOT / ".geniagent", project))
     runtime = OCIRuntime(app.state, app.info)
     config = oci.config.from_file(profile_name=os.environ.get("OCI_SANDBOX_PROFILE", "Sandbox"))
     config["region"] = os.environ.get("OCI_SANDBOX_REGION", "us-chicago-1")

@@ -5,10 +5,12 @@ from types import SimpleNamespace as NS
 import unittest
 from unittest.mock import Mock
 
-from geniagent.app import PROJECT, State
+from geniagent.app import State
 from geniagent.transport import APIError
 from scripts.run_oracle_guide import BRIEF, BRIEF_PATH, PLAN_PATH, prepare_brief, run
 
+
+PROJECT = "proj_test"
 
 class GuideTests(unittest.TestCase):
     def setUp(self):

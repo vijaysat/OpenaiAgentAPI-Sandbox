@@ -12,12 +12,10 @@ import uuid
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from geniagent.app import Application, PROJECT, State, load_dotenv, resource_id
+from geniagent.app import Application, configured_project, State, load_dotenv, resource_id
 from geniagent.oci_runtime import OCIRuntime
 from geniagent.transport import APIError, CurlClient
 from .provider import SYMBOL
-
-DEFAULT_SESSION_ID = "<SESSION_ID>"
 
 
 class StockAgentError(Exception):
@@ -124,7 +122,7 @@ def verify_result(envelope, operation, value, request_id):
 
 
 class StockAgentService:
-    def __init__(self, folder=None, session_id=DEFAULT_SESSION_ID):
+    def __init__(self, folder=None, *, session_id):
         self.folder = folder or ROOT / "stock-demo" / ".agent-state"
         self.session_id = resource_id(session_id)
 
@@ -142,16 +140,18 @@ class StockAgentService:
         except (ValueError, TypeError, AttributeError):
             raise StockAgentError("A valid requestId is required.", 400) from None
         load_dotenv(ROOT / ".env")
-        if os.environ.get("OPENAI_PROJECT_ID", PROJECT) != PROJECT:
-            raise StockAgentError("Use this workspace's configured OpenAI project.", 503)
+        try:
+            project = configured_project()
+        except APIError as exc:
+            raise StockAgentError(str(exc), 503) from None
         key = os.environ.get("OPENAI_API_KEY", "").strip()
         if not key:
             raise StockAgentError("Set OPENAI_API_KEY in the workspace .env.", 503)
-        client = CurlClient(key, PROJECT)
-        state = State(self.folder / "sessions" / self.session_id / "requests" / request_id, PROJECT)
+        client = CurlClient(key, project)
+        state = State(self.folder / "sessions" / self.session_id / "requests" / request_id, project)
         app = SessionApplication(client, state, timeout=120)
         app.remember_session(self.session_id)
-        shared_state = State(ROOT / ".geniagent", PROJECT)
+        shared_state = State(ROOT / ".geniagent", project)
         try:
             with state.lock(), shared_state.lock():
                 previous = state.load("report.json")

@@ -1,5 +1,4 @@
-# Oracle preview SDK provided in this repository. The Agents CLI uses this SDK.
---find-links .
-oci==2.185.3+preview.1.20260909174501
-# Oracle's separately distributed preview oci-cli wheel is optional for this app;
+# Public Oracle SDK used by the Agents CLI and stock-demo backend.
+oci==2.189.0
+# Oracle's separately distributed oci-cli package is optional for this app;
 # scripts/rollout.py supplies the required journaled lifecycle commands.

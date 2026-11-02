@@ -10,7 +10,7 @@ import sys
 import time
 import uuid
 
-from .app import ROOT, PROJECT, State, load_dotenv, resource_id, save_json
+from .app import ROOT, configured_project, State, load_dotenv, resource_id, save_json
 from .transport import APIError, CurlClient, decode_sse, parse_headers
 
 
@@ -90,7 +90,8 @@ def stream_local(client, body, output, timeout):
 def stream_in_sandbox(client, body, output, timeout, session_id):
     """Run the same curl transport inside an existing sandbox; poll its output."""
     from .oci_runtime import OCIRuntime
-    state = State(ROOT / ".geniagent", PROJECT)
+    project = configured_project()
+    state = State(ROOT / ".geniagent", project)
     runtime = OCIRuntime(state, lambda text: print(client.redact(text), file=sys.stderr, flush=True))
     record = state.load(runtime.filename(resource_id(session_id)))
     if not record.get("sandbox_id") or record.get("deleted"):

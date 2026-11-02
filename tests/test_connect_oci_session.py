@@ -4,10 +4,12 @@ import tempfile
 import unittest
 from unittest.mock import Mock
 
-from geniagent.app import Application, PROJECT, State
+from geniagent.app import Application, State
 from geniagent.transport import APIError
 from scripts.connect_oci_session import connect, prepare_replacement
 
+
+PROJECT = "proj_test"
 
 class ConnectionTests(unittest.TestCase):
     def setUp(self):

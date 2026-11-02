@@ -18,7 +18,6 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from .transport import APIError, CurlClient
 
 ROOT = Path(__file__).resolve().parents[1]
-PROJECT = "proj_VD6ShY81c4nQ7iY3dFVuRzfo"
 INITIAL_MESSAGE = (
     "Introduce yourself as GeniAgent-G. Call get_current_time for America/New_York "
     "and report its result. Then use Python in your workspace to calculate sum([10, 20, 30]), "
@@ -54,6 +53,16 @@ def load_dotenv(path):
         else:
             value = re.split(r"\s+#", value, maxsplit=1)[0].rstrip()
         os.environ.setdefault(key, value)
+
+
+def configured_project():
+    """Resolve the explicitly selected OpenAI project after loading dotenv."""
+    project = os.environ.get("OPENAI_PROJECT_ID", "")
+    if not project.strip():
+        raise APIError("Set OPENAI_PROJECT_ID in the project .env or export it in your shell.")
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", project):
+        raise APIError("Invalid OPENAI_PROJECT_ID; use the exact project ID without whitespace.")
+    return project
 
 
 def resource_id(value):
@@ -430,9 +439,7 @@ def main(argv=None):
         key = os.environ.get("OPENAI_API_KEY", "").strip()
         if not key:
             raise APIError("Set OPENAI_API_KEY in the project .env or export it in your shell.")
-        project = os.environ.get("OPENAI_PROJECT_ID", PROJECT)
-        if project != PROJECT:
-            raise APIError(f"This application targets {PROJECT}; correct OPENAI_PROJECT_ID.")
+        project = configured_project()
         if not shutil.which("curl") or not shutil.which("bash"):
             raise APIError("Install curl 7.76+ and bash before running the application.")
         if args.timeout < 1:

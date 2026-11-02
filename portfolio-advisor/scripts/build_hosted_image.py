@@ -1,6 +1,5 @@
 """Publish a sanitized application snapshot and build it in the dedicated OCI pipeline."""
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -67,30 +66,8 @@ def publish(r):
     return r.j['source_snapshot']
 
 
-def upload_wheel(r):
-    wheels = list((APP / 'vendor').glob('oci-*.whl'))
-    if len(wheels) != 1: raise ValueError('Expected exactly one reviewed preview OCI SDK wheel.')
-    wheel = wheels[0]; digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
-    o = r.j['outputs']; client = r.oci.object_storage.ObjectStorageClient(r.config, signer=r.signer)
-    try:
-        existing = client.head_object(o['namespace'], o['build_bucket'], wheel.name)
-    except r.oci.exceptions.ServiceError as exc:
-        if exc.status != 404: raise
-        existing = None
-    if existing:
-        if existing.headers.get('opc-meta-sha256') != digest:
-            raise ValueError('Existing build input has a different checksum; refusing replacement.')
-    else:
-        r.j['wheel_upload_intent'] = {'name': wheel.name, 'sha256': digest}; r.save()
-        with wheel.open('rb') as stream:
-            client.put_object(o['namespace'], o['build_bucket'], wheel.name, stream,
-                              if_none_match='*', opc_meta={'sha256': digest})
-    r.j['build_wheel'] = {'name': wheel.name, 'sha256': digest}; r.save()
-    return r.j['build_wheel']
-
-
 def start(r, attempt=1):
-    o = r.j['outputs']; source = r.j['source_snapshot']; wheel = r.j['build_wheel']
+    o = r.j['outputs']; source = r.j['source_snapshot']
     tag = 'source-' + source['commit'][:16]
     client = r.oci.devops.DevopsClient(r.config, signer=r.signer, retry_strategy=r.oci.retry.NoneRetryStrategy())
     key = 'build:' + source['commit'] + ('' if attempt == 1 else ':attempt:' + str(attempt))
@@ -108,9 +85,7 @@ def start(r, attempt=1):
         images = images.items if hasattr(images, 'items') and not isinstance(images, list) else images
         if any(image.version == tag for image in images):
             raise ValueError('Image tag already exists; reconcile its source and digest before proceeding.')
-    values = {'APP_BASE_PATH': urlsplit(r.j['applicationURL']).path, 'OCI_NAMESPACE': o['namespace'],
-              'BUILD_INPUT_BUCKET': o['build_bucket'], 'PREVIEW_WHEEL_OBJECT': wheel['name'],
-              'PREVIEW_WHEEL_SHA256': wheel['sha256'], 'IMAGE_TAG': tag}
+    values = {'APP_BASE_PATH': urlsplit(r.j['applicationURL']).path, 'IMAGE_TAG': tag}
     m = r.oci.devops.models
     identifier = r.operation(key, lambda token: client.create_build_run(m.CreateBuildRunDetails(
         display_name='portfolio-advisor-' + source['commit'][:12], build_pipeline_id=o['build_pipeline_id'],
@@ -145,14 +120,14 @@ def status(r):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action', choices=['publish', 'upload-wheel', 'start', 'status'])
+    p.add_argument('action', choices=['publish', 'start', 'status'])
     p.add_argument('--review-id')
     p.add_argument('--attempt', type=int, default=1)
     args = p.parse_args()
     if args.action != 'status' and not args.review_id: raise ValueError('Record the rollout authorization.')
     r = Rollout(APP / 'deploy/private/vault-bootstrap.json', 'Sandbox')
     if args.attempt < 1: raise ValueError('Build attempt must be positive.')
-    result = start(r, args.attempt) if args.action == 'start' else {'publish': publish, 'upload-wheel': upload_wheel, 'status': status}[args.action](r)
+    result = start(r, args.attempt) if args.action == 'start' else {'publish': publish, 'status': status}[args.action](r)
     print(json.dumps(result, indent=2))
 
 

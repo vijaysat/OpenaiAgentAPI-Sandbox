@@ -8,25 +8,18 @@ env:
     - IMAGE_TAG
 steps:
   - type: Command
-    name: Build reviewed source and preview SDK
+    name: Build reviewed source with the public OCI SDK
     command: |
       set -euo pipefail
       cd "${OCI_PRIMARY_SOURCE_DIR:?Missing checked-out source directory}"
       export IMAGE_TAG="source-$(git rev-parse HEAD | cut -c1-16)"
       : "${APP_BASE_PATH:?Set the actual hosted application URL prefix}"
-      : "${OCI_NAMESPACE:?Set the dedicated namespace}"
-      : "${BUILD_INPUT_BUCKET:?Set the dedicated build bucket}"
-      : "${PREVIEW_WHEEL_OBJECT:?Set the approved wheel object name}"
-      : "${PREVIEW_WHEEL_SHA256:?Set its reviewed digest}"
       : "${IMAGE_TAG:?Set an immutable image tag for this source snapshot}"
-      for value in "$APP_BASE_PATH" "$OCI_NAMESPACE" "$BUILD_INPUT_BUCKET" "$PREVIEW_WHEEL_OBJECT" "$PREVIEW_WHEEL_SHA256" "$IMAGE_TAG"; do
+      for value in "$APP_BASE_PATH" "$IMAGE_TAG"; do
         test "$value" != UNSET || { echo 'Required build parameter was not supplied'; exit 1; }
       done
-      mkdir -p portfolio-advisor/vendor
-      oci os object get --auth resource_principal --namespace "$OCI_NAMESPACE" --bucket-name "$BUILD_INPUT_BUCKET" --name "$PREVIEW_WHEEL_OBJECT" --file "portfolio-advisor/vendor/$PREVIEW_WHEEL_OBJECT"
-      printf '%s  %s\n' "$PREVIEW_WHEEL_SHA256" "portfolio-advisor/vendor/$PREVIEW_WHEEL_OBJECT" | sha256sum -c -
       docker build --platform linux/amd64 --build-arg APP_BASE_PATH="$APP_BASE_PATH" -f portfolio-advisor/deploy/Dockerfile -t portfolio-advisor:reviewed .
-      test "$(docker image inspect --format '{{len .RootFS.Layers}}' portfolio-advisor:reviewed)" = 1
+      docker image inspect --format '{{json .RootFS.Layers}}' portfolio-advisor:reviewed | python3 portfolio-advisor/scripts/check_image_layers.py
       docker run --rm --entrypoint python portfolio-advisor:reviewed -c "import os,pathlib,psycopg; from portfolio_advisor.api import create_app; from geniagent.transport import CurlClient; assert os.getuid()==10001; assert pathlib.Path('/app/scripts/api.sh').is_file(); assert pathlib.Path('/app/certs/postgres-ca.pem').is_file(); print('Non-root runtime, API, database driver and transport verified')"
       docker run --rm --entrypoint python portfolio-advisor:reviewed -m portfolio_advisor.runtime_security
       docker run --rm --entrypoint bash portfolio-advisor:reviewed -c 'set -euo pipefail; curl --version | head -1 | grep -F "curl 8.22.0 "; openssl version; for package in openssl libssl3; do version=$(dpkg-query -W -f="\${Version}" "$package"); printf "%s %s\n" "$package" "$version"; dpkg --compare-versions "$version" ge "3.0.22-1~deb12u1"; done; curl --disable --fail --silent --show-error --max-time 30 --output /dev/null https://curl.se/; echo "Patched curl TLS and CA trust verified"'

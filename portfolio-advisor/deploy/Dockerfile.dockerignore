@@ -1,4 +1,5 @@
 **
+!LICENSE
 !geniagent/
 !geniagent/**
 !scripts/
@@ -7,8 +8,6 @@
 !portfolio-advisor/portfolio_advisor/
 !portfolio-advisor/portfolio_advisor/**
 !portfolio-advisor/requirements.lock
-!portfolio-advisor/vendor/
-!portfolio-advisor/vendor/*.whl
 !portfolio-advisor/frontend/
 !portfolio-advisor/frontend/**
 !portfolio-advisor/deploy/

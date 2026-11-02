@@ -99,7 +99,7 @@ def test_unconfirmed_write_with_original_state_is_not_replayed(rollout):
     assert not writes
 
 
-def test_network_update_uses_arguments_accepted_by_preview_sdk(rollout):
+def test_network_update_uses_arguments_accepted_by_public_sdk(rollout):
     r, _, _ = rollout
     prepare(r)
     requests = []

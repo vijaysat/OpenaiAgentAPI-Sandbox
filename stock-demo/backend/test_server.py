@@ -1,6 +1,36 @@
+import io
+import os
 import unittest
 from unittest.mock import patch
 from backend.provider import QuoteError, get_quote, search_stocks
+from backend.server import main
+
+
+class StartupTests(unittest.TestCase):
+    def test_missing_or_invalid_session_is_rejected_before_binding(self):
+        for args in ([], ["--session-id", "<SESSION_ID>"], ["--session-id", "../session"]):
+            with self.subTest(args=args), patch("backend.server.ThreadingHTTPServer") as server, \
+                 patch("sys.stderr", io.StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    main(args)
+                self.assertEqual(error.exception.code, 2)
+                server.assert_not_called()
+
+    def test_missing_project_is_rejected_before_binding(self):
+        with patch.dict(os.environ, {}, clear=True), patch("backend.server.load_dotenv"), \
+             patch("backend.server.ThreadingHTTPServer") as server, patch("sys.stderr", io.StringIO()):
+            with self.assertRaises(SystemExit):
+                main(["--session-id", "sess_explicit"])
+            server.assert_not_called()
+
+    def test_explicit_session_is_used_by_server(self):
+        with patch.dict(os.environ, {"OPENAI_PROJECT_ID": "proj_selected"}), \
+             patch("backend.server.load_dotenv"), patch("backend.server.ThreadingHTTPServer") as server, \
+             patch("sys.stdout", io.StringIO()):
+            server.return_value.serve_forever.side_effect = KeyboardInterrupt
+            main(["--session-id", "sess_explicit"])
+            self.assertEqual(server.return_value.stock_agent.session_id, "sess_explicit")
+            server.return_value.server_close.assert_called_once()
 
 
 class ProviderTests(unittest.TestCase):

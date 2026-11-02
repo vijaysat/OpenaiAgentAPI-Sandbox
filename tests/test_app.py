@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import queue
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -12,10 +13,12 @@ from unittest.mock import patch
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-from geniagent.app import (Application, INITIAL_MESSAGE, PROJECT, ROOT, State,
-                           execute_tool, load_dotenv, main, resource_id)
+from geniagent.app import (Application, INITIAL_MESSAGE, ROOT, State,
+                           configured_project, execute_tool, load_dotenv, main, resource_id)
 from geniagent.transport import APIError, CurlClient, decode_sse
 
+
+PROJECT = "proj_test"
 
 class FakeAPI(ThreadingHTTPServer):
     daemon_threads = True
@@ -308,6 +311,40 @@ class ContractTests(unittest.TestCase):
 
 
 class UnitTests(unittest.TestCase):
+    def test_project_configuration_is_explicit_and_header_safe(self):
+        for project in (None, "", "  ", "proj_bad\nInjected", "proj bad"):
+            env = {} if project is None else {"OPENAI_PROJECT_ID": project}
+            with self.subTest(project=project), patch.dict(os.environ, env, clear=True):
+                with self.assertRaises(APIError):
+                    configured_project()
+        for project in ("proj_first", "proj_second"):
+            with patch.dict(os.environ, {"OPENAI_PROJECT_ID": project}, clear=True):
+                self.assertEqual(configured_project(), project)
+
+    def test_missing_project_stops_cli_before_transport_or_state(self):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "synthetic-key"}, clear=True), \
+             patch("geniagent.app.load_dotenv"), patch("geniagent.app.CurlClient") as client, \
+             patch("geniagent.app.State") as state, patch("sys.stderr", io.StringIO()):
+            self.assertNotEqual(main(["check"]), 0)
+            client.assert_not_called()
+            state.assert_not_called()
+
+    def test_shell_requires_project_before_curl(self):
+        command = 'curl() { echo UNEXPECTED_NETWORK; }; source scripts/api.sh GET /agents'
+        for project in (None, "", " ", "proj_bad\nInjected"):
+            env = {"PATH": os.environ["PATH"], "OPENAI_API_KEY": "synthetic-key"}
+            if project is not None:
+                env["OPENAI_PROJECT_ID"] = project
+            result = subprocess.run(["bash", "-c", command], cwd=ROOT, env=env,
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn("UNEXPECTED_NETWORK", result.stdout)
+        result = subprocess.run(["bash", "-c", command.replace('echo UNEXPECTED_NETWORK', 'echo "$project"')],
+                                cwd=ROOT, env={**env, "OPENAI_PROJECT_ID": "proj_other"},
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout.strip(), "proj_other")
+
     def test_recovery_does_not_duplicate_overlapping_partial_deltas(self):
         with tempfile.TemporaryDirectory() as folder:
             output = io.StringIO()

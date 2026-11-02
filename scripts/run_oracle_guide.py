@@ -12,7 +12,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from geniagent.app import Application, PROJECT, State, load_dotenv, resource_id, save_json
+from geniagent.app import Application, configured_project, State, load_dotenv, resource_id, save_json
 from geniagent.oci_runtime import OCIRuntime
 from geniagent.transport import APIError, CurlClient
 
@@ -155,13 +155,17 @@ def main():
     parser.add_argument("--timeout", type=int, default=300)
     args = parser.parse_args()
     load_dotenv(ROOT / ".env")
-    if os.environ.get("OPENAI_PROJECT_ID", PROJECT) != PROJECT or args.timeout < 1:
-        parser.error("Use the configured OpenAI project and a positive timeout.")
+    try:
+        project = configured_project()
+    except APIError as exc:
+        parser.error(str(exc))
+    if args.timeout < 1:
+        parser.error("Use a positive timeout.")
     key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not key:
         parser.error("Set OPENAI_API_KEY in this project's .env.")
-    state = State(ROOT / ".geniagent", PROJECT)
-    client = CurlClient(key, PROJECT)
+    state = State(ROOT / ".geniagent", project)
+    client = CurlClient(key, project)
     app = Application(client, state, args.timeout)
     try:
         with state.lock():

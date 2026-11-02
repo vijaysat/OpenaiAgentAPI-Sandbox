@@ -12,7 +12,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from geniagent.app import Application, INITIAL_MESSAGE, PROJECT, State, load_dotenv, read_json, save_json
+from geniagent.app import Application, INITIAL_MESSAGE, configured_project, State, load_dotenv, read_json, save_json
 from geniagent.oci_runtime import OCIRuntime
 from geniagent.transport import APIError, CurlClient
 
@@ -44,13 +44,12 @@ def main():
     from oci.generative_ai import models
 
     load_dotenv(ROOT / ".env")
-    if os.environ.get("OPENAI_PROJECT_ID", PROJECT) != PROJECT:
-        raise APIError(f"This application targets {PROJECT}.")
+    project = configured_project()
     source_project_id = os.environ["OCI_SANDBOX_PROJECT_ID"]
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
     folder = ROOT / ".geniagent" / "live-tests" / stamp
-    state = State(folder, PROJECT)
-    client = CurlClient(os.environ["OPENAI_API_KEY"], PROJECT)
+    state = State(folder, project)
+    client = CurlClient(os.environ["OPENAI_API_KEY"], project)
     app = Application(client, state, args.timeout)
     runtime = OCIRuntime(state, app.info)
     runtime.preflight()
@@ -68,7 +67,7 @@ def main():
     save()
     try:
         definition = read_json(ROOT / "config/agent.json")
-        root_state = State(ROOT / ".geniagent", PROJECT)
+        root_state = State(ROOT / ".geniagent", project)
         with root_state.lock():
             agent_id = Application(client, root_state).agent(definition)
         report["agent_id"] = agent_id

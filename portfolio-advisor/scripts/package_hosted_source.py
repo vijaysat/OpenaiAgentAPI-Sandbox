@@ -15,6 +15,7 @@ SUFFIXES = {'.py', '.ts', '.tsx', '.js', '.json', '.toml', '.lock', '.yaml',
 
 
 def entries(root):
+    yield 'LICENSE', (root / 'LICENSE').read_bytes()
     yield 'scripts/api.sh', (root / 'scripts/api.sh').read_bytes()
     for selected in ('geniagent', 'portfolio-advisor'):
         for directory, names, files in os.walk(root / selected, followlinks=False):

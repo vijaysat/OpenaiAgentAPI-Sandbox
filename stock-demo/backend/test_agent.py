@@ -9,9 +9,13 @@ import unittest
 from unittest.mock import patch
 import uuid
 
-from backend.agent import (DEFAULT_SESSION_ID, PROJECT, State, StockAgentError, StockAgentService,
+from backend.agent import (State, StockAgentError, StockAgentService,
                            SessionApplication, matches_command, verify_result)
 from geniagent.transport import APIError
+
+
+PROJECT = "proj_stock_test"
+SESSION_ID = "sess_stock_fixture"
 
 
 class FakeRuntime:
@@ -48,8 +52,8 @@ class FakeClient:
 
     def request(self, method, path, body=None):
         self.calls.append((method, path, body))
-        if method == "GET" and path == f"/agents/sessions/{DEFAULT_SESSION_ID}":
-            return {"id": DEFAULT_SESSION_ID, "status": "idle" if self.idle else "in_progress",
+        if method == "GET" and path == f"/agents/sessions/{SESSION_ID}":
+            return {"id": SESSION_ID, "status": "idle" if self.idle else "in_progress",
                     "agent": {"id": "agent_original", "model": "gpt-6-luna"},
                     "environment": {"id": "env_original", "type": "self_hosted", "workspace_directory": "/workspace"}}
         if method == "GET" and path == "/agents/environments/env_original":
@@ -58,7 +62,7 @@ class FakeClient:
             return {"data": [], "has_more": False}
         if "/turns?" in path:
             return {"data": [{"id": "turn_old", "status": "completed"}], "has_more": False}
-        if method == "POST" and path == f"/agents/sessions/{DEFAULT_SESSION_ID}/events":
+        if method == "POST" and path == f"/agents/sessions/{SESSION_ID}/events":
             event = body["events"][0]
             assert event["type"] == "agent.session.input.message"
             self.command = event["input"][0]["content"][0]["text"].splitlines()[1]
@@ -69,7 +73,7 @@ class FakeClient:
     @contextmanager
     def stream(self, method, path, timeout):
         self.calls.append((method, path, None))
-        assert method == "GET" and path == f"/agents/sessions/{DEFAULT_SESSION_ID}/events?stream=true"
+        assert method == "GET" and path == f"/agents/sessions/{SESSION_ID}/events?stream=true"
 
         def events():
             request_path, output_path = shlex.split(self.command)[-2:]
@@ -92,7 +96,7 @@ class ExistingSessionTests(unittest.TestCase):
         self.folder = Path(self.tmp.name)
         self.runtime = FakeRuntime()
         self.client = FakeClient(self.runtime)
-        State(self.folder / ".geniagent", PROJECT).save(f"{DEFAULT_SESSION_ID}-oci.json", {
+        State(self.folder / ".geniagent", PROJECT).save(f"{SESSION_ID}-oci.json", {
             "sandbox_id": "sbx_fixture", "environment_id": "env_original"})
         for patcher in (patch("backend.agent.ROOT", self.folder), patch("backend.agent.load_dotenv"),
                         patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test", "OPENAI_PROJECT_ID": PROJECT}),
@@ -103,9 +107,9 @@ class ExistingSessionTests(unittest.TestCase):
 
     def test_uses_exact_existing_session_and_reads_oci_artifact(self):
         request_id = str(uuid.uuid4())
-        service = StockAgentService(self.folder / "demo")
+        service = StockAgentService(self.folder / "demo", session_id=SESSION_ID)
         result = service.run("search", "Apple", request_id)
-        self.assertEqual(result["agent"]["sessionId"], DEFAULT_SESSION_ID)
+        self.assertEqual(result["agent"]["sessionId"], SESSION_ID)
         self.assertEqual(result["agent"]["agentId"], "agent_original")
         self.assertEqual(result["agent"]["execution"], "OCI sandbox")
         self.assertEqual(result["agent"]["turnId"], "turn_new")
@@ -121,27 +125,36 @@ class ExistingSessionTests(unittest.TestCase):
     def test_disconnected_session_does_not_send_input_or_create_resources(self):
         self.client.connected = False
         with self.assertRaisesRegex(StockAgentError, "disconnected"):
-            StockAgentService(self.folder / "demo").run("search", "Apple", str(uuid.uuid4()))
+            StockAgentService(self.folder / "demo", session_id=SESSION_ID).run("search", "Apple", str(uuid.uuid4()))
         self.assertFalse(any(c[0] == "POST" for c in self.client.calls))
+        self.assertEqual(self.runtime.calls, [])
+
+    def test_missing_project_does_not_reach_remote_services(self):
+        for project in ("", " "):
+            with patch.dict(os.environ, {"OPENAI_PROJECT_ID": project}):
+                with self.assertRaisesRegex(StockAgentError, "OPENAI_PROJECT_ID"):
+                    StockAgentService(self.folder / "demo", session_id=SESSION_ID).run(
+                        "search", "Apple", str(uuid.uuid4()))
+        self.assertEqual(self.client.calls, [])
         self.assertEqual(self.runtime.calls, [])
 
     def test_busy_session_does_not_submit_another_turn(self):
         self.client.idle = False
         with self.assertRaisesRegex(StockAgentError, "not idle"):
-            StockAgentService(self.folder / "demo").run("search", "Apple", str(uuid.uuid4()))
+            StockAgentService(self.folder / "demo", session_id=SESSION_ID).run("search", "Apple", str(uuid.uuid4()))
         self.assertFalse(any(c[0] == "POST" for c in self.client.calls))
 
     def test_oci_connection_failure_returns_valid_http_error_and_retains_evidence(self):
         request_id = str(uuid.uuid4())
-        service = StockAgentService(self.folder / "demo")
+        service = StockAgentService(self.folder / "demo", session_id=SESSION_ID)
         failure = APIError("OCI connection failed: sk-test", status="unknown")
         with patch.object(self.runtime, "health", side_effect=failure):
             with self.assertRaises(StockAgentError) as caught:
                 service.run("search", "Apple", request_id)
         self.assertEqual(caught.exception.status, 502)
         self.assertNotIn("sk-test", str(caught.exception))
-        self.assertEqual(caught.exception.agent["sessionId"], DEFAULT_SESSION_ID)
-        report = json.loads((self.folder / "demo" / "sessions" / DEFAULT_SESSION_ID /
+        self.assertEqual(caught.exception.agent["sessionId"], SESSION_ID)
+        report = json.loads((self.folder / "demo" / "sessions" / SESSION_ID /
                              "requests" / request_id / "report.json").read_text())
         self.assertEqual(report["status"], "failed")
         self.assertNotIn("sk-test", report["error"])
@@ -149,7 +162,7 @@ class ExistingSessionTests(unittest.TestCase):
 
     def test_old_turn_or_model_text_cannot_prove_execution(self):
         app = SessionApplication(self.client, State(self.folder / "app", PROJECT))
-        app.remember_session(DEFAULT_SESSION_ID)
+        app.remember_session(SESSION_ID)
         app.ignored_turns = {"turn_old"}
         app.handle_event({"type": "agent.session.turn.item.done", "turn_id": "turn_old", "item": {
             "id": "old", "type": "command_execution", "command": "python3 helper.py", "status": "completed", "exit_code": 0}})
@@ -171,7 +184,7 @@ class ExistingSessionTests(unittest.TestCase):
 
     def test_unknown_request_id_cannot_call_openai(self):
         with self.assertRaises(StockAgentError):
-            StockAgentService(self.folder / "demo").run("search", "Apple", "../../escape")
+            StockAgentService(self.folder / "demo", session_id=SESSION_ID).run("search", "Apple", "../../escape")
         self.assertEqual(self.client.calls, [])
 
 

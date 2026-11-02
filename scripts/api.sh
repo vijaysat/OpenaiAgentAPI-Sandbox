@@ -3,7 +3,9 @@
 set -euo pipefail
 set +x
 : "${OPENAI_API_KEY:?Set OPENAI_API_KEY in your environment or project .env}"
-project="${OPENAI_PROJECT_ID:-proj_VD6ShY81c4nQ7iY3dFVuRzfo}"
+: "${OPENAI_PROJECT_ID:?Set OPENAI_PROJECT_ID in your environment or project .env}"
+project="$OPENAI_PROJECT_ID"
+case "$project" in *[!A-Za-z0-9_-]*) echo 'Invalid OPENAI_PROJECT_ID; use the exact project ID without whitespace.' >&2; exit 2 ;; esac
 base="${GENIAGENT_API_BASE:-https://api.openai.com/v1}"
 method="${1:?Usage: bash scripts/api.sh METHOD /agents/path [headers-file] [timeout]}"
 route="${2:?API path required}"

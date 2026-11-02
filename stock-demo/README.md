@@ -4,9 +4,9 @@ A separate React Native / Expo application demonstrating the **OpenAI Agents API
 Search a company name, choose the correct symbol and exchange, and view its latest
 available regular-session price, currency, daily change, and quote timestamp.
 
-Every search and quote request adds a turn to this existing Agents API session:
-
-`sess_09f68edbca8dff11006ab2fd2957b081939db122cb9ce9cccb`
+Every search and quote request adds a turn to the existing Agents API session
+selected with the required `--session-id` argument. Replace `SESSION_ID` in the
+commands below with the exact ID of your connected session.
 
 Its **GeniAgent-G** agent runs a stock helper using `command_execution` in its
 connected OCI workspace. The UI shows the session ID, turn ID, actual session
@@ -24,28 +24,31 @@ requests execute in the sandbox. The service checks successful command execution
 root turn completion, helper integrity, and matching request IDs before displaying
 data. Model text is never used to populate prices.
 
-## Start on this Mac
+## Start locally
 
 Requires Node 22.13 or later and the workspace's `.venv-oci` Python environment.
-The exact session must already have a connected OCI executor and a valid sandbox
-mapping under the workspace's `.geniagent/` directory. Install once:
+The lockfile uses Expo 57.0.31, React Native 0.86.3, and TypeScript 6.0.3.
+The selected session must already have a connected OCI executor and a valid sandbox
+mapping under the workspace's `.geniagent/` directory. Set `OPENAI_PROJECT_ID` and
+`OPENAI_API_KEY` in the root `.env`. From the repository root, install once:
 
 ```bash
-cd /Users/vpurshot/Work/WorkProjects/openai-agent-api-sandbox/stock-demo
+bash scripts/setup_oci.sh
+cd stock-demo
 npm ci
 ```
 
-In one terminal, start the data service:
+In one terminal, from the repository root, start the data service:
 
 ```bash
-cd /Users/vpurshot/Work/WorkProjects/openai-agent-api-sandbox/stock-demo
-npm run api -- --session-id sess_09f68edbca8dff11006ab2fd2957b081939db122cb9ce9cccb
+cd stock-demo
+npm run api -- --session-id SESSION_ID
 ```
 
-In another terminal, start the app in your browser:
+In another terminal, from the repository root, start the app in your browser:
 
 ```bash
-cd /Users/vpurshot/Work/WorkProjects/openai-agent-api-sandbox/stock-demo
+cd stock-demo
 npm run web
 ```
 
@@ -55,9 +58,9 @@ and an unrecognizable company name. Stop the API to see the connection error sta
 
 To serve the compiled app without the development packager, run `npm run build:web`
 once and use `npm run preview` instead of `npm run web`. Keep the API terminal running.
-Use only one web server on port 8081 at a time. The API defaults to the session ID
-above; `--session-id` can select another existing session with a connected OCI
-`/workspace` environment. Both search and quote appear as new turns in the same
+Use only one web server on port 8081 at a time. The API requires `--session-id`
+and never chooses a session automatically. Select an existing session with a
+connected OCI `/workspace` environment. Both search and quote appear as new turns in the same
 session in OpenAI Platform.
 
 OCI compute has a limited lifetime (30 minutes in this workspace's connection
@@ -67,7 +70,7 @@ create replacement sessions or fetch prices outside OCI. If OCI authentication
 expires, renew it from the workspace root:
 
 ```bash
-.venv-oci/bin/oci session authenticate --profile-name Sandbox --region us-chicago-1
+oci session authenticate --profile-name Sandbox --region us-chicago-1
 ```
 
 Authentication alone does not reconnect an expired sandbox. Inspect retained
@@ -86,7 +89,7 @@ for the request-flow diagram and full session lifecycle.
 The iOS simulator uses `localhost:8766`; the Android emulator uses `10.0.2.2:8766`.
 For a physical device, put the Mac and phone on the same network, set
 `EXPO_PUBLIC_API_URL=http://YOUR_MAC_LAN_IP:8766` in this folder's `.env`, and start
-the API with `npm run api -- --host 0.0.0.0`. Restart Expo after changing
+the API with `npm run api -- --session-id SESSION_ID --host 0.0.0.0`. Restart Expo after changing
 the URL. The API defaults to loopback; use the LAN binding only on a trusted network.
 Do not put credentials in an `EXPO_PUBLIC_*` variable.
 
